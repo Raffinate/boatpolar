@@ -1,5 +1,41 @@
 import { describe, expect, it } from "vitest"
-import { parsePolarSetting, parseSettings } from "./storage.ts"
+import type { Polar } from "./polar.ts"
+import { addCustomPolar, parseCustomPolars, parsePolarSetting, parseSettings } from "./storage.ts"
+
+const polarOf = (name: string, speed: number): Polar => ({
+  id: `custom:${name}`,
+  name,
+  curves: [{ tws: 10, twa: [45, 90], bsp: [speed, speed + 2] }],
+})
+
+describe("custom polars", () => {
+  it("adds a new polar", () => {
+    const { list, polar } = addCustomPolar([], polarOf("Mine", 5))
+    expect(list.map((p) => p.name)).toEqual(["Mine"])
+    expect(polar.id).toBe("custom:Mine")
+  })
+
+  it("doesn't duplicate the same polar", () => {
+    const first = addCustomPolar([], polarOf("Mine", 5))
+    const again = addCustomPolar(first.list, polarOf("Mine", 5))
+    expect(again.list).toBe(first.list)
+    expect(again.polar).toBe(first.polar)
+  })
+
+  it("numbers a different polar with a taken name", () => {
+    let r = addCustomPolar([], polarOf("Pasted polar", 5))
+    r = addCustomPolar(r.list, polarOf("Pasted polar", 6))
+    r = addCustomPolar(r.list, polarOf("Pasted polar", 7))
+    expect(r.list.map((p) => p.name)).toEqual(["Pasted polar", "Pasted polar (2)", "Pasted polar (3)"])
+    expect(r.polar.id).toBe("custom:Pasted polar (3)")
+  })
+
+  it("reads a saved list, skipping broken and duplicate entries", () => {
+    const good = polarOf("A", 5)
+    expect(parseCustomPolars([good, { name: "broken" }, good, 7])).toEqual([good])
+    expect(parseCustomPolars("nope")).toEqual([])
+  })
+})
 
 describe("parseSettings", () => {
   it("keeps valid values", () => {

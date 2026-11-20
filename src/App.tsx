@@ -7,7 +7,15 @@ import { Readout } from "./components/Readout.tsx"
 import { library } from "./data/library.ts"
 import { preparePolar, type Polar } from "./lib/polar.ts"
 import { solve } from "./lib/solve.ts"
-import { loadPolarSetting, loadSettings, savePolarSetting, saveSettings } from "./lib/storage.ts"
+import {
+  addCustomPolar,
+  loadCustomPolars,
+  loadPolarSetting,
+  loadSettings,
+  saveCustomPolars,
+  savePolarSetting,
+  saveSettings,
+} from "./lib/storage.ts"
 
 const defaultBoat = library.find((b) => b.id === "first-40-7") ?? library[0]
 
@@ -52,6 +60,16 @@ const segmentClass =
 export function App() {
   const saved = loadSettings()
   const [polar, setPolar] = createSignal<Polar>(initialPolar())
+  const [customPolars, setCustomPolars] = createSignal<Polar[]>(loadCustomPolars())
+  const importPolar = (p: Polar) => {
+    const result = addCustomPolar(customPolars(), p)
+    setCustomPolars(result.list)
+    setPolar(result.polar)
+  }
+  const removeCustom = (id: string) => {
+    setCustomPolars((list) => list.filter((p) => p.id !== id))
+    if (polar().id === id) setPolar(defaultBoat.polar)
+  }
   const prepared = createMemo(() => preparePolar(polar()))
   const [tws, setTws] = createSignal(saved.tws ?? 12)
   const [windFrom, setWindFrom] = createSignal(saved.windFrom ?? 220)
@@ -67,6 +85,7 @@ export function App() {
     () => polar(),
     (p) => savePolarSetting(library.some((b) => b.id === p.id) ? { boatId: p.id } : { custom: p }),
   )
+  createEffect(() => customPolars(), saveCustomPolars)
 
   const windSpeed = createMemo(() => Math.min(prepared().maxTws, Math.max(prepared().minTws, tws())))
   const solution = createMemo(() =>
@@ -198,7 +217,13 @@ export function App() {
                 {prepared().minTws}–{prepared().maxTws} kn wind · TWA {coverage()}
               </div>
             </div>
-            <PolarSource current={polar()} onLoad={setPolar} />
+            <PolarSource
+              current={polar()}
+              custom={customPolars()}
+              onLoad={setPolar}
+              onImport={importPolar}
+              onRemove={removeCustom}
+            />
           </Card>
         </div>
       </div>

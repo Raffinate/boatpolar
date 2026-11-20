@@ -21,18 +21,20 @@ import type { Polar } from "../lib/polar.ts"
 
 interface PolarSourceProps {
   current: Polar
+  custom: Polar[]
   onLoad: (polar: Polar) => void
+  onImport: (polar: Polar) => void
+  onRemove: (id: string) => void
 }
 
-const groups = [...new Set(library.map((b) => b.group))].map((label) => ({
+interface Group {
+  label: string
+  boats: { id: string; name: string; polar: Polar }[]
+}
+
+const libraryGroups: Group[] = [...new Set(library.map((b) => b.group))].map((label) => ({
   label,
   boats: library.filter((b) => b.group === label),
-}))
-
-const items: ListData = groups.map((g) => ({
-  type: "group" as const,
-  label: g.label,
-  items: g.boats.map((b) => ({ value: b.id, label: b.name })),
 }))
 
 const tabClass =
@@ -67,16 +69,28 @@ export function PolarSource(props: PolarSourceProps) {
   const pasted = createMemo<ParseResult | null>(() => (text().trim() ? parsePolar(text(), "Pasted polar") : null))
   const [fileResult, setFileResult] = createSignal<ParseResult | null>(null)
 
-  const libraryValue = createMemo(() =>
-    library.some((b) => b.id === props.current.id) ? props.current.id : null,
+  const groups = createMemo<Group[]>(() =>
+    props.custom.length
+      ? [{ label: "My polars", boats: props.custom.map((p) => ({ id: p.id, name: p.name, polar: p })) }, ...libraryGroups]
+      : libraryGroups,
   )
+  const items = createMemo<ListData>(() =>
+    groups().map((g) => ({
+      type: "group" as const,
+      label: g.label,
+      items: g.boats.map((b) => ({ value: b.id, label: b.name })),
+    })),
+  )
+  const findBoat = (id: string | null) => groups().flatMap((g) => g.boats).find((b) => b.id === id)
+  const selected = createMemo(() => findBoat(props.current.id)?.id ?? null)
+  const currentIsCustom = createMemo(() => props.custom.some((p) => p.id === props.current.id))
 
   const loadFile = async (files: File[]) => {
     const file = files[0]
     if (!file) return
     const result = parsePolar(await file.text(), file.name.replace(/\.[^.]+$/, ""))
     setFileResult(result)
-    if (result.ok) props.onLoad(result.polar)
+    if (result.ok) props.onImport(result.polar)
   }
 
   return (
@@ -97,11 +111,11 @@ export function PolarSource(props: PolarSourceProps) {
         <Field>
           <FieldLabel class="text-sm font-medium">Boat</FieldLabel>
           <Select
-            items={items}
-            value={libraryValue()}
+            items={items()}
+            value={selected()}
             placeholder="Choose a boat"
             onValueChange={(id) => {
-              const boat = library.find((b) => b.id === id)
+              const boat = findBoat(id as string | null)
               if (boat) props.onLoad(boat.polar)
             }}
           >
@@ -112,7 +126,7 @@ export function PolarSource(props: PolarSourceProps) {
               </svg>
             </SelectTrigger>
             <SelectContent class="m-0 overflow-y-auto rounded-md border border-border bg-card p-1 text-sm text-foreground shadow-lg outline-none">
-              <For each={groups}>
+              <For each={groups()}>
                 {(g) => (
                   <SelectGroup>
                     <SelectGroupLabel class="px-2 pt-2 pb-1 text-xs font-medium text-muted-foreground">{g.label}</SelectGroupLabel>
@@ -137,9 +151,18 @@ export function PolarSource(props: PolarSourceProps) {
             </SelectContent>
           </Select>
           <FieldDescription class="mt-1.5 text-xs text-muted-foreground">
-            Curated polars from the OpenCPN Weather Routing library and ORC certificates.
+            Curated polars from the OpenCPN Weather Routing library and ORC certificates. Polars you paste or upload
+            are kept under My polars in this browser.
           </FieldDescription>
         </Field>
+        <Show when={currentIsCustom()}>
+          <Button
+            onClick={() => props.onRemove(props.current.id)}
+            class="h-8 rounded-md border border-input bg-card px-3 text-xs font-medium text-foreground shadow-xs outline-none hover:bg-accent focus-visible:ring-3 focus-visible:ring-ring/40"
+          >
+            Remove “{props.current.name}” from My polars
+          </Button>
+        </Show>
       </TabsPanel>
 
       <TabsPanel value="paste" class="space-y-2 outline-none">
@@ -162,7 +185,7 @@ export function PolarSource(props: PolarSourceProps) {
           disabled={!pasted()?.ok}
           onClick={() => {
             const r = pasted()
-            if (r?.ok) props.onLoad(r.polar)
+            if (r?.ok) props.onImport(r.polar)
           }}
           class="h-9 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow-xs outline-none hover:opacity-90 focus-visible:ring-3 focus-visible:ring-ring/40 disabled:pointer-events-none disabled:opacity-50"
         >

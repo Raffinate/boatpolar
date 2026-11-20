@@ -2,6 +2,7 @@ import { normalizePolar, type Polar, type PolarCurve } from "./polar.ts"
 
 const SETTINGS_KEY = "boatpolarsolver:settings:v1"
 const POLAR_KEY = "boatpolarsolver:polar:v1"
+const CUSTOM_KEY = "boatpolarsolver:custom:v1"
 
 export interface Settings {
   windFrom: number
@@ -67,7 +68,35 @@ function write(key: string, value: unknown) {
   }
 }
 
+export function parseCustomPolars(raw: unknown): Polar[] {
+  if (!Array.isArray(raw)) return []
+  const out: Polar[] = []
+  for (const item of raw) {
+    const saved = parsePolarSetting({ custom: item })
+    if (saved && "custom" in saved && !out.some((p) => p.id === saved.custom.id)) out.push(saved.custom)
+  }
+  return out
+}
+
+const sameCurves = (a: Polar, b: Polar) => JSON.stringify(a.curves) === JSON.stringify(b.curves)
+
+/** Adds a polar to the list; the same polar again is a no-op, a different one with a taken name gets "(2)", "(3)"… */
+export function addCustomPolar(list: Polar[], polar: Polar): { list: Polar[]; polar: Polar } {
+  const base = polar.name.trim() || "Custom polar"
+  for (let n = 1; ; n++) {
+    const name = n === 1 ? base : `${base} (${n})`
+    const existing = list.find((p) => p.name === name)
+    if (existing && sameCurves(existing, polar)) return { list, polar: existing }
+    if (!existing) {
+      const added: Polar = { id: `custom:${name}`, name, curves: polar.curves }
+      return { list: [...list, added], polar: added }
+    }
+  }
+}
+
 export const loadSettings = () => parseSettings(read(SETTINGS_KEY))
+export const loadCustomPolars = () => parseCustomPolars(read(CUSTOM_KEY))
+export const saveCustomPolars = (list: Polar[]) => write(CUSTOM_KEY, list)
 export const saveSettings = (s: Settings) => write(SETTINGS_KEY, s)
 export const loadPolarSetting = () => parsePolarSetting(read(POLAR_KEY))
 export const savePolarSetting = (p: SavedPolar) => write(POLAR_KEY, p)
