@@ -1,5 +1,5 @@
 import { SegmentedControl, SegmentedControlIndicator, SegmentedControlItem } from "@ui-sdk/solid/segmented-control"
-import { createMemo, createSignal, type Element as JSXElement } from "solid-js"
+import { createEffect, createMemo, createSignal, type Element as JSXElement } from "solid-js"
 import { PolarDiagram, type ViewMode } from "./components/PolarDiagram.tsx"
 import { PolarSource } from "./components/PolarSource.tsx"
 import { RangeField } from "./components/RangeField.tsx"
@@ -7,8 +7,15 @@ import { Readout } from "./components/Readout.tsx"
 import { library } from "./data/library.ts"
 import { preparePolar, type Polar } from "./lib/polar.ts"
 import { solve } from "./lib/solve.ts"
+import { loadPolarSetting, loadSettings, savePolarSetting, saveSettings } from "./lib/storage.ts"
 
 const defaultBoat = library.find((b) => b.id === "first-40-7") ?? library[0]
+
+function initialPolar(): Polar {
+  const saved = loadPolarSetting()
+  if (saved && "custom" in saved) return saved.custom
+  return library.find((b) => saved && b.id === saved.boatId)?.polar ?? defaultBoat.polar
+}
 
 function Card(props: { title?: string; class?: string; children: JSXElement }) {
   return (
@@ -43,13 +50,23 @@ const segmentClass =
   "relative rounded-md px-3 py-1 text-xs font-medium text-muted-foreground outline-none data-checked:text-foreground focus-visible:ring-3 focus-visible:ring-ring/40"
 
 export function App() {
-  const [polar, setPolar] = createSignal<Polar>(defaultBoat.polar)
+  const saved = loadSettings()
+  const [polar, setPolar] = createSignal<Polar>(initialPolar())
   const prepared = createMemo(() => preparePolar(polar()))
-  const [tws, setTws] = createSignal(12)
-  const [windFrom, setWindFrom] = createSignal(220)
-  const [destination, setDestination] = createSignal(180)
-  const [marginPct, setMarginPct] = createSignal(1)
-  const [view, setView] = createSignal<ViewMode>("north")
+  const [tws, setTws] = createSignal(saved.tws ?? 12)
+  const [windFrom, setWindFrom] = createSignal(saved.windFrom ?? 220)
+  const [destination, setDestination] = createSignal(saved.destination ?? 180)
+  const [marginPct, setMarginPct] = createSignal(saved.marginPct ?? 1)
+  const [view, setView] = createSignal<ViewMode>(saved.view ?? "north")
+
+  createEffect(
+    () => ({ windFrom: windFrom(), tws: tws(), destination: destination(), marginPct: marginPct(), view: view() }),
+    saveSettings,
+  )
+  createEffect(
+    () => polar(),
+    (p) => savePolarSetting(library.some((b) => b.id === p.id) ? { boatId: p.id } : { custom: p }),
+  )
 
   const windSpeed = createMemo(() => Math.min(prepared().maxTws, Math.max(prepared().minTws, tws())))
   const solution = createMemo(() =>
