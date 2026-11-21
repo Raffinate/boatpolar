@@ -123,6 +123,7 @@ export function App() {
                 <Legend color="var(--course)" label="Best heading" />
                 <Legend color="var(--course)" label="Other tack margin" dashed />
                 <Legend color="var(--destination)" label="Destination" dashed />
+                <Legend color="var(--destination)" label="Destination range" />
               </div>
               <SegmentedControl
                 aria-label="Diagram orientation"
@@ -157,7 +158,7 @@ export function App() {
             </p>
           </Card>
           <Card>
-            <Readout solution={solution()} margin={marginPct() / 100} />
+            <Readout solution={solution()} margin={marginPct() / 100} destination={destination()} />
           </Card>
         </div>
 

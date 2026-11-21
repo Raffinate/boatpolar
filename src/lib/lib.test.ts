@@ -187,6 +187,37 @@ describe("solve", () => {
     expect(s.otherBands).toHaveLength(0)
   })
 
+  it("finds the destination bearings the best heading still serves within the margin", () => {
+    const input = { polar: p, tws: 12, windFrom: 0, destination: 90, margin: 0.02 }
+    const s = solve(input)!
+    const { from, to } = s.destinationRange
+    expect(angleDiff(from, 90)).toBeLessThan(0)
+    expect(angleDiff(to, 90)).toBeGreaterThan(0)
+    for (const edge of [from, to]) {
+      const there = solve({ ...input, destination: edge })!
+      const ours = s.best.bsp * Math.cos(((s.best.heading - edge) * Math.PI) / 180)
+      expect(ours).toBeGreaterThanOrEqual(there.best.vmc * 0.98 - 1e-6)
+    }
+    const beyond = norm360(to + 1)
+    const there = solve({ ...input, destination: beyond })!
+    expect(s.best.bsp * Math.cos(((s.best.heading - beyond) * Math.PI) / 180)).toBeLessThan(there.best.vmc * 0.98)
+  })
+
+  it("narrows the destination range to the destination with no margin", () => {
+    const s = solve({ polar: p, tws: 12, windFrom: 0, destination: 90, margin: 0 })!
+    expect(Math.abs(angleDiff(s.destinationRange.from, 90))).toBeLessThanOrEqual(0.2)
+    expect(Math.abs(angleDiff(s.destinationRange.to, 90))).toBeLessThanOrEqual(0.2)
+  })
+
+  it("always gives an option on the other tack, even one that makes no progress", () => {
+    const s = solve({ polar: p, tws: 10, windFrom: 0, destination: 90, margin: 0.01 })!
+    expect(s.otherTack).not.toBeNull()
+    expect(Math.sign(s.otherTack!.twa)).toBe(-Math.sign(s.best.twa))
+    expect(s.otherTack!.vmc).toBeLessThanOrEqual(1e-9)
+    expect(s.otherThreshold).toBeNull()
+    expect(s.otherBands).toHaveLength(0)
+  })
+
   it("handles a band that wraps through north", () => {
     const polar: Polar = { id: "w", name: "w", curves: [{ tws: 10, twa: [0, 180], bsp: [6, 6] }] }
     const s = solve({ polar: preparePolar(polar), tws: 10, windFrom: 90, destination: 0, margin: 0.01 })!

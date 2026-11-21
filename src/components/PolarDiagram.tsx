@@ -18,6 +18,7 @@ interface PolarDiagramProps {
 const DEG = Math.PI / 180
 const R_PLOT = 184
 const R_RING = 198
+const R_TARGET = 212
 const R_HANDLE = 226
 const R_OUTER = 244
 
@@ -82,6 +83,17 @@ export function PolarDiagram(props: PolarDiagramProps) {
   }
   const bands = createMemo(() => (props.solution?.bands ?? []).map(bandShape))
   const otherBands = createMemo(() => (props.solution?.otherBands ?? []).map(bandShape))
+
+  const destinationRange = createMemo(() => {
+    const r = props.solution?.destinationRange
+    if (!r) return null
+    const span = norm360(r.to - r.from)
+    const large = span > 180 ? 1 : 0
+    return {
+      cone: `M0 0L${xy(r.from, R_RING)}A${R_RING} ${R_RING} 0 ${large} 1 ${xy(r.to, R_RING)}Z`,
+      arc: `M${xy(r.from, R_TARGET)}A${R_TARGET} ${R_TARGET} 0 ${large} 1 ${xy(r.to, R_TARGET)}`,
+    }
+  })
 
   const ticks = Array.from({ length: 72 }, (_, i) => i * 5)
   const labels = [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330]
@@ -205,6 +217,14 @@ export function PolarDiagram(props: PolarDiagramProps) {
       </g>
 
       <g class="pointer-events-none">
+        <Show when={destinationRange()}>
+          {(r) => (
+            <>
+              <path d={r().cone} class="fill-destination/8 stroke-none" />
+              <path d={r().arc} class="fill-none stroke-destination/80" stroke-width="4" stroke-linecap="round" />
+            </>
+          )}
+        </Show>
         <For each={otherBands()} keyed={false}>
           {(band) => (
             <>

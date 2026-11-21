@@ -1,9 +1,14 @@
 import { For, Show, type Element as JSXElement } from "solid-js"
-import { tackOf, type CourseSample, type Solution } from "../lib/solve.ts"
+import { angleDiff, tackOf, type CourseSample, type Solution } from "../lib/solve.ts"
 
 const heading = (h: number) => `${String(Math.round(h) % 360).padStart(3, "0")}°`
 const knots = (v: number) => `${v.toFixed(2)} kn`
 const pct = (x: number) => `${Math.round(x * 100)}%`
+
+const offset = (bearing: number, from: number) => {
+  const d = Math.round(angleDiff(bearing, from))
+  return `${d > 0 ? "+" : d < 0 ? "−" : "±"}${Math.abs(d)}°`
+}
 
 function twa(s: CourseSample) {
   const tack = tackOf(s.twa)
@@ -34,7 +39,7 @@ function Row(props: { label: string; children: JSXElement }) {
   )
 }
 
-export function Readout(props: { solution: Solution | null; margin: number }) {
+export function Readout(props: { solution: Solution | null; margin: number; destination: number }) {
   const marginLabel = () => `${+(props.margin * 100).toFixed(2)}%`
   return (
     <Show
@@ -91,7 +96,9 @@ export function Readout(props: { solution: Solution | null; margin: number }) {
                       when={s().otherBands.length}
                       fallback={
                         <div class="text-xs text-muted-foreground">
-                          Within {marginLabel()} of the best heading, so it's in the range above.
+                          {s().otherThreshold !== null
+                            ? `Within ${marginLabel()} of the best heading, so it's in the range above.`
+                            : "Makes no progress toward the destination on this tack."}
                         </div>
                       }
                     >
@@ -116,6 +123,21 @@ export function Readout(props: { solution: Solution | null; margin: number }) {
                   </>
                 )}
               </Show>
+            </Row>
+            <Row label="Destination range">
+              <div>
+                <span class="font-medium text-destination">
+                  {heading(s().destinationRange.from)} – {heading(s().destinationRange.to)} T
+                </span>
+                <span class="text-muted-foreground">
+                  {" "}
+                  · {offset(s().destinationRange.from, props.destination)} / {offset(s().destinationRange.to, props.destination)}
+                </span>
+              </div>
+              <div class="text-xs text-muted-foreground">
+                While the destination bearing stays in this range, {heading(s().best.heading)} T stays within{" "}
+                {marginLabel()} of the best heading for it.
+              </div>
             </Row>
             <Row label="Straight there">
               <Show
