@@ -35,6 +35,7 @@ function Row(props: { label: string; children: JSXElement }) {
 }
 
 export function Readout(props: { solution: Solution | null; margin: number }) {
+  const marginLabel = () => `${+(props.margin * 100).toFixed(2)}%`
   return (
     <Show
       when={props.solution}
@@ -58,7 +59,7 @@ export function Readout(props: { solution: Solution | null; margin: number }) {
             />
           </div>
           <div>
-            <Row label={`Within ${+(props.margin * 100).toFixed(2)}%`}>
+            <Row label={`Within ${marginLabel()}`}>
               <For each={s().bands} keyed={false}>
                 {(b) => (
                   <div>
@@ -79,12 +80,40 @@ export function Readout(props: { solution: Solution | null; margin: number }) {
             <Row label="Other tack">
               <Show when={s().otherTack} fallback={<span class="text-muted-foreground">Makes no progress toward the destination</span>}>
                 {(o) => (
-                  <span>
-                    {heading(o().heading)} T · TWA {twa(o())} · {knots(o().bsp)} ·{" "}
-                    <span class="text-muted-foreground">
-                      {knots(o().vmc)} toward destination ({pct(o().vmc / s().best.vmc)} of best)
-                    </span>
-                  </span>
+                  <>
+                    <div>
+                      {heading(o().heading)} T · TWA {twa(o())} · {knots(o().bsp)} ·{" "}
+                      <span class="text-muted-foreground">
+                        {knots(o().vmc)} toward destination ({pct(o().vmc / s().best.vmc)} of best)
+                      </span>
+                    </div>
+                    <Show
+                      when={s().otherBands.length}
+                      fallback={
+                        <div class="text-xs text-muted-foreground">
+                          Within {marginLabel()} of the best heading, so it's in the range above.
+                        </div>
+                      }
+                    >
+                      <For each={s().otherBands} keyed={false}>
+                        {(b) => (
+                          <div>
+                            <span class="font-medium text-course">
+                              {heading(b().from.heading)} – {heading(b().to.heading)} T
+                            </span>
+                            <span class="text-muted-foreground">
+                              {" "}
+                              · TWA {twa(b().from)} – {twa(b().to)}
+                            </span>
+                          </div>
+                        )}
+                      </For>
+                      <div class="text-xs text-muted-foreground">
+                        Within {marginLabel()} of this tack's best: at or above {knots(s().otherThreshold ?? 0)} toward the
+                        destination.
+                      </div>
+                    </Show>
+                  </>
                 )}
               </Show>
             </Row>

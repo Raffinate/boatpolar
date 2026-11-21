@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { parsePolar } from "./parse.ts"
 import { boatSpeed, preparePolar, type Polar } from "./polar.ts"
-import { angleDiff, solve } from "./solve.ts"
+import { angleDiff, norm360, solve } from "./solve.ts"
 
 const grid = `TWA\\TWS\t6\t10\t16
 0\t0\t0\t0
@@ -165,6 +165,26 @@ describe("solve", () => {
       expect(b.to.vmc).toBeGreaterThanOrEqual(s.threshold)
     }
     expect(s.threshold).toBeCloseTo(s.best.vmc * 0.98)
+  })
+
+  it("gives the other tack its own margin band", () => {
+    const s = solve({ polar: p, tws: 12, windFrom: 0, destination: 30, margin: 0.02 })!
+    expect(s.otherTack!.vmc).toBeLessThan(s.threshold)
+    expect(s.otherThreshold).toBeCloseTo(s.otherTack!.vmc * 0.98)
+    expect(s.otherBands.length).toBeGreaterThan(0)
+    for (const b of s.otherBands) {
+      expect(Math.sign(b.from.twa)).toBe(-Math.sign(s.best.twa))
+      expect(Math.sign(b.to.twa)).toBe(-Math.sign(s.best.twa))
+      expect(b.from.vmc).toBeGreaterThanOrEqual(s.otherThreshold!)
+      expect(b.to.vmc).toBeGreaterThanOrEqual(s.otherThreshold!)
+    }
+    const span = norm360(s.otherBands[0].to.heading - s.otherBands[0].from.heading)
+    expect(norm360(s.otherTack!.heading - s.otherBands[0].from.heading)).toBeLessThanOrEqual(span)
+  })
+
+  it("leaves the other tack to the main band when it's within the margin of best", () => {
+    const s = solve({ polar: p, tws: 10, windFrom: 0, destination: 0, margin: 0.01 })!
+    expect(s.otherBands).toHaveLength(0)
   })
 
   it("handles a band that wraps through north", () => {

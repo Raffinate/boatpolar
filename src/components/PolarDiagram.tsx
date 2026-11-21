@@ -1,6 +1,6 @@
 import { createMemo, createSignal, For, Show } from "solid-js"
 import { boatSpeed, type PreparedPolar } from "../lib/polar.ts"
-import { angleDiff, norm360, type Solution } from "../lib/solve.ts"
+import { angleDiff, norm360, type Band, type Solution } from "../lib/solve.ts"
 
 export type ViewMode = "north" | "wind"
 
@@ -69,19 +69,19 @@ export function PolarDiagram(props: PolarDiagramProps) {
   )
   const currentCurve = createMemo(() => curvePath((twa) => boatSpeed(props.polar, twa, props.tws)))
 
-  const bands = createMemo(() =>
-    (props.solution?.bands ?? []).map((band) => {
-      const span = norm360(band.to.heading - band.from.heading)
-      let wedge = "M0 0"
-      for (let h = 0; h <= span + 1e-9; h += Math.min(0.5, Math.max(span, 0.1))) {
-        const heading = band.from.heading + h
-        const v = boatSpeed(props.polar, angleDiff(props.windFrom, heading), props.tws) ?? 0
-        wedge += `L${xy(heading, v * scale().k)}`
-      }
-      const arc = `M${xy(band.from.heading, R_RING)}A${R_RING} ${R_RING} 0 ${span > 180 ? 1 : 0} 1 ${xy(band.to.heading, R_RING)}`
-      return { wedge: `${wedge}Z`, arc }
-    }),
-  )
+  const bandShape = (band: Band) => {
+    const span = norm360(band.to.heading - band.from.heading)
+    let wedge = "M0 0"
+    for (let h = 0; h <= span + 1e-9; h += Math.min(0.5, Math.max(span, 0.1))) {
+      const heading = band.from.heading + h
+      const v = boatSpeed(props.polar, angleDiff(props.windFrom, heading), props.tws) ?? 0
+      wedge += `L${xy(heading, v * scale().k)}`
+    }
+    const arc = `M${xy(band.from.heading, R_RING)}A${R_RING} ${R_RING} 0 ${span > 180 ? 1 : 0} 1 ${xy(band.to.heading, R_RING)}`
+    return { wedge: `${wedge}Z`, arc }
+  }
+  const bands = createMemo(() => (props.solution?.bands ?? []).map(bandShape))
+  const otherBands = createMemo(() => (props.solution?.otherBands ?? []).map(bandShape))
 
   const ticks = Array.from({ length: 72 }, (_, i) => i * 5)
   const labels = [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330]
@@ -205,6 +205,14 @@ export function PolarDiagram(props: PolarDiagramProps) {
       </g>
 
       <g class="pointer-events-none">
+        <For each={otherBands()} keyed={false}>
+          {(band) => (
+            <>
+              <path d={band().wedge} class="fill-course/10 stroke-none" />
+              <path d={band().arc} class="fill-none stroke-course/70" stroke-width="3" stroke-dasharray="5 4" />
+            </>
+          )}
+        </For>
         <For each={bands()} keyed={false}>
           {(band) => (
             <>
@@ -259,15 +267,39 @@ export function PolarDiagram(props: PolarDiagramProps) {
               />
               <Show when={s().otherTack}>
                 {(o) => (
-                  <circle
-                    cx={pt(o().heading, o().bsp * scale().k).x}
-                    cy={pt(o().heading, o().bsp * scale().k).y}
-                    r="5"
-                    class="fill-card stroke-course"
-                    stroke-width="2"
-                  />
+                  <>
+                    <line
+                      x1={pt(o().heading, o().bsp * scale().k).x}
+                      y1={pt(o().heading, o().bsp * scale().k).y}
+                      x2={pt(props.destination, o().vmc * scale().k).x}
+                      y2={pt(props.destination, o().vmc * scale().k).y}
+                      class="stroke-foreground/35"
+                      stroke-dasharray="3 3"
+                    />
+                    <circle
+                      cx={pt(props.destination, o().vmc * scale().k).x}
+                      cy={pt(props.destination, o().vmc * scale().k).y}
+                      r="3.5"
+                      class="fill-card stroke-destination"
+                      stroke-width="2"
+                    />
+                    <circle
+                      cx={pt(o().heading, o().bsp * scale().k).x}
+                      cy={pt(o().heading, o().bsp * scale().k).y}
+                      r="5"
+                      class="fill-card stroke-course"
+                      stroke-width="2"
+                    />
+                  </>
                 )}
               </Show>
+              <circle
+                cx={pt(props.destination, s().best.vmc * scale().k).x}
+                cy={pt(props.destination, s().best.vmc * scale().k).y}
+                r="4.5"
+                class="fill-destination stroke-card"
+                stroke-width="1.5"
+              />
               <circle
                 cx={pt(s().best.heading, s().best.bsp * scale().k).x}
                 cy={pt(s().best.heading, s().best.bsp * scale().k).y}

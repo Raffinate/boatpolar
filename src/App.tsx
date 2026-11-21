@@ -121,6 +121,7 @@ export function App() {
                 <Legend color="var(--curve)" label={`${windSpeed().toFixed(1)} kn polar`} />
                 <Legend color="var(--muted-foreground)" label="Other wind speeds" dim />
                 <Legend color="var(--course)" label="Best heading" />
+                <Legend color="var(--course)" label="Other tack margin" dashed />
                 <Legend color="var(--destination)" label="Destination" dashed />
               </div>
               <SegmentedControl

@@ -29,6 +29,10 @@ export interface Solution {
   direct: CourseSample | null
   threshold: number
   bands: Band[]
+  /** Speed toward the destination the other tack's margin keeps; null without a usable other tack. */
+  otherThreshold: number | null
+  /** Headings on the other tack within the margin of its own best. Empty when the main bands already cover that tack's best. */
+  otherBands: Band[]
   samples: (CourseSample | null)[]
 }
 
@@ -55,6 +59,25 @@ function sampleAt(input: SolveInput, heading: number): CourseSample | null {
   return { heading: norm360(heading), twa, bsp, vmc }
 }
 
+/** Runs of consecutive samples that pass the test, joined across north. */
+function findBands(samples: (CourseSample | null)[], test: (s: CourseSample) => boolean): Band[] {
+  const count = samples.length
+  const inBand = samples.map((s) => !!s && test(s))
+  const bands: Band[] = []
+  const start = inBand.indexOf(false)
+  if (start === -1) return [{ from: samples[0]!, to: samples[count - 1]! }]
+  let runStart = -1
+  for (let k = 1; k <= count; k++) {
+    const i = (start + k) % count
+    if (inBand[i] && runStart === -1) runStart = i
+    if (!inBand[i] && runStart !== -1) {
+      bands.push({ from: samples[runStart]!, to: samples[(i - 1 + count) % count]! })
+      runStart = -1
+    }
+  }
+  return bands
+}
+
 export function solve(input: SolveInput): Solution | null {
   const step = input.step ?? 0.1
   const count = Math.round(360 / step)
@@ -75,22 +98,13 @@ export function solve(input: SolveInput): Solution | null {
   }
 
   const threshold = best.vmc * (1 - input.margin)
-  const inBand = samples.map((s) => !!s && s.vmc >= threshold)
-  const bands: Band[] = []
-  const start = inBand.indexOf(false)
-  if (start === -1) {
-    bands.push({ from: samples[0]!, to: samples[count - 1]! })
-  } else {
-    let runStart = -1
-    for (let k = 1; k <= count; k++) {
-      const i = (start + k) % count
-      if (inBand[i] && runStart === -1) runStart = i
-      if (!inBand[i] && runStart !== -1) {
-        bands.push({ from: samples[runStart]!, to: samples[(i - 1 + count) % count]! })
-        runStart = -1
-      }
-    }
-  }
+  const bands = findBands(samples, (s) => s.vmc >= threshold)
+
+  const otherThreshold = otherTack ? otherTack.vmc * (1 - input.margin) : null
+  const otherBands =
+    otherTack && otherThreshold !== null && otherTack.vmc < threshold
+      ? findBands(samples, (s) => Math.sign(s.twa) === -bestSide && s.vmc > 0 && s.vmc >= otherThreshold)
+      : []
 
   return {
     best,
@@ -98,6 +112,8 @@ export function solve(input: SolveInput): Solution | null {
     direct: sampleAt(input, input.destination),
     threshold,
     bands,
+    otherThreshold,
+    otherBands,
     samples,
   }
 }
