@@ -233,10 +233,6 @@ export function App() {
           </Card>
         </div>
       </div>
-
-      <footer class="mt-8 text-xs text-muted-foreground">
-        Wind and polars only: no current, tide or leeway. Library polars: OpenCPN Weather Routing plugin and ORC certificates (data.orc.org).
-      </footer>
     </div>
   )
 }

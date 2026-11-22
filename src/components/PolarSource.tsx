@@ -152,8 +152,7 @@ export function PolarSource(props: PolarSourceProps) {
             </SelectContent>
           </Select>
           <FieldDescription class="mt-1.5 text-xs text-muted-foreground">
-            Curated polars from the OpenCPN Weather Routing library and ORC certificates. Polars you paste or upload
-            are kept under My polars in this browser.
+            Polars you paste or upload are kept under My polars in this browser.
           </FieldDescription>
         </Field>
         <Show when={currentIsCustom()}>

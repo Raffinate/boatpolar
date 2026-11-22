@@ -3,7 +3,7 @@
 Finds the heading that gets a sailing boat to its destination fastest: the one with the highest
 speed toward the destination (VMC), given the boat's polar, the true wind direction and speed,
 and the destination bearing. Headings within an acceptable margin of the best (1% by default) are
-shaded on the diagram and listed below it. Wind and polar only: no current, tide or leeway.
+shaded on the diagram and listed below it.
 
 ## Polars
 
