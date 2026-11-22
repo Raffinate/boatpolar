@@ -96,13 +96,13 @@ export function PolarSource(props: PolarSourceProps) {
   return (
     <Tabs defaultValue="library" class="space-y-3">
       <TabsList aria-label="Polar source" class="flex gap-1 rounded-lg bg-muted p-1">
-        <TabsTab value="library" class={tabClass}>
+        <TabsTab value="library" class={tabClass} data-ph-capture-attribute-polar-source="library">
           Library
         </TabsTab>
-        <TabsTab value="paste" class={tabClass}>
+        <TabsTab value="paste" class={tabClass} data-ph-capture-attribute-polar-source="paste">
           Paste
         </TabsTab>
-        <TabsTab value="file" class={tabClass}>
+        <TabsTab value="file" class={tabClass} data-ph-capture-attribute-polar-source="file">
           File
         </TabsTab>
       </TabsList>
@@ -134,6 +134,7 @@ export function PolarSource(props: PolarSourceProps) {
                       {(b) => (
                         <SelectItem
                           value={b.id}
+                          data-ph-capture-attribute-boat={b.id.startsWith("custom:") ? "custom" : b.id}
                           class="flex cursor-default items-center justify-between gap-4 rounded-sm px-2 py-1.5 outline-none data-highlighted:bg-accent"
                         >
                           {b.name}
@@ -158,6 +159,7 @@ export function PolarSource(props: PolarSourceProps) {
         <Show when={currentIsCustom()}>
           <Button
             onClick={() => props.onRemove(props.current.id)}
+            data-ph-capture-attribute-action="remove-custom-polar"
             class="h-8 rounded-md border border-input bg-card px-3 text-xs font-medium text-foreground shadow-xs outline-none hover:bg-accent focus-visible:ring-3 focus-visible:ring-ring/40"
           >
             Remove “{props.current.name}” from My polars
@@ -183,6 +185,7 @@ export function PolarSource(props: PolarSourceProps) {
         <ParseStatus result={pasted()} />
         <Button
           disabled={!pasted()?.ok}
+          data-ph-capture-attribute-action="use-pasted-polar"
           onClick={() => {
             const r = pasted()
             if (r?.ok) props.onImport(r.polar)

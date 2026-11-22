@@ -132,10 +132,10 @@ export function App() {
                 class="inline-flex rounded-lg bg-muted p-0.5"
               >
                 <SegmentedControlIndicator class="rounded-md bg-card shadow-sm" />
-                <SegmentedControlItem value="north" class={segmentClass}>
+                <SegmentedControlItem value="north" class={segmentClass} data-ph-capture-attribute-view="north">
                   North up
                 </SegmentedControlItem>
-                <SegmentedControlItem value="wind" class={segmentClass}>
+                <SegmentedControlItem value="wind" class={segmentClass} data-ph-capture-attribute-view="wind">
                   Wind up
                 </SegmentedControlItem>
               </SegmentedControl>
