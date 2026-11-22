@@ -4,22 +4,24 @@ import type { PolarCurve } from "./polar.ts"
 export interface OrcAllowances {
   WindSpeeds: number[]
   WindAngles: number[]
-  BeatAngle: number[]
-  GybeAngle: number[]
-  Beat: number[]
-  Run: number[]
-  [key: string]: number[]
+  BeatAngle?: number[]
+  GybeAngle?: number[]
+  Beat?: number[]
+  Run?: number[]
+  /** R52, R60, …: seconds per mile at that true wind angle. */
+  [key: string]: number[] | undefined
 }
 
 /** The `vpp` block used by jieter/orc-data: boat speeds in knots. */
 export interface OrcDataVpp {
   angles: number[]
   speeds: number[]
-  beat_angle: number[]
-  beat_vmg: number[]
-  run_angle: number[]
-  run_vmg: number[]
-  [key: string]: number[]
+  beat_angle?: number[]
+  beat_vmg?: number[]
+  run_angle?: number[]
+  run_vmg?: number[]
+  /** "52", "60", …: boat speed at that true wind angle. */
+  [key: string]: number[] | undefined
 }
 
 const rad = (deg: number) => (deg * Math.PI) / 180

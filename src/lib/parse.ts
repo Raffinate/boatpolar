@@ -30,28 +30,74 @@ function parseJson(text: string, name: string): ParseResult {
   } catch (e) {
     return fail(`It looks like JSON but doesn't parse: ${(e as Error).message}`)
   }
-  const record = (Array.isArray(data) ? data[0] : data) as Record<string, any> | undefined
-  if (!record || typeof record !== "object") return fail("The JSON has no polar in it.")
-  const orc = Array.isArray(record.rms) ? record.rms[0] : record
-  if (orc?.Allowances?.WindSpeeds) {
-    return finish(curvesFromOrcAllowances(orc.Allowances), orc.Class || orc.YachtName || name, "ORC certificate (JSON)", "ORC certificate")
+  const record: unknown = Array.isArray(data) ? data[0] : data
+  if (!isObject(record)) return fail("The JSON has no polar in it.")
+
+  const orc: unknown = Array.isArray(record.rms) ? record.rms[0] : record
+  if (isObject(orc) && isObject(orc.Allowances)) {
+    const a = numberLists(orc.Allowances)
+    const { WindSpeeds, WindAngles } = a
+    if (!WindSpeeds || !WindAngles) return fail("The ORC certificate's Allowances need WindSpeeds and WindAngles lists.")
+    return finish(
+      curvesFromOrcAllowances({ ...a, WindSpeeds, WindAngles }),
+      firstText(orc.Class, orc.YachtName) ?? name,
+      "ORC certificate (JSON)",
+      "ORC certificate",
+    )
   }
-  if (record.vpp?.angles && record.vpp?.speeds) {
-    return finish(curvesFromOrcDataVpp(record.vpp), record.boat?.type || record.name || name, "ORC VPP data (JSON)", "ORC certificate")
+
+  if (isObject(record.vpp)) {
+    const v = numberLists(record.vpp)
+    const { angles, speeds } = v
+    if (!angles || !speeds) return fail("The VPP data needs angles and speeds lists.")
+    const boatType = isObject(record.boat) ? record.boat.type : undefined
+    return finish(
+      curvesFromOrcDataVpp({ ...v, angles, speeds }),
+      firstText(boatType, record.name) ?? name,
+      "ORC VPP data (JSON)",
+      "ORC certificate",
+    )
   }
+
   if (Array.isArray(record.curves)) {
-    return finish(record.curves, record.name || name, "polar JSON", record.source)
-  }
-  if (Array.isArray(record.tws) && Array.isArray(record.twa) && Array.isArray(record.bsp)) {
-    const curves = record.tws.map((tws: number, j: number) => ({
-      tws,
-      twa: record.twa,
-      bsp: record.twa.map((_: number, i: number) => record.bsp[i]?.[j]),
+    const curves = record.curves.filter(isObject).map((c) => ({
+      tws: typeof c.tws === "number" ? c.tws : NaN,
+      twa: numbers(c.twa) ?? [],
+      bsp: numbers(c.bsp) ?? [],
     }))
-    return finish(curves, record.name || name, "polar JSON (grid)")
+    return finish(curves, firstText(record.name) ?? name, "polar JSON", firstText(record.source))
+  }
+
+  const tws = numbers(record.tws)
+  const twa = numbers(record.twa)
+  if (tws && twa && Array.isArray(record.bsp)) {
+    const rows = record.bsp.map((row) => numbers(row))
+    const curves = tws.map((speed, j) => ({ tws: speed, twa, bsp: twa.map((_, i) => rows[i]?.[j] ?? NaN) }))
+    return finish(curves, firstText(record.name) ?? name, "polar JSON (grid)")
   }
   return fail("The JSON isn't a format I know: expected an ORC certificate, ORC VPP data, or { tws, twa, bsp }.")
 }
+
+type JsonObject = Record<string, unknown>
+
+const isObject = (v: unknown): v is JsonObject => typeof v === "object" && v !== null && !Array.isArray(v)
+
+/** A JSON list as numbers. Anything that isn't a number becomes NaN, which normalizePolar drops. */
+const numbers = (v: unknown): number[] | undefined =>
+  Array.isArray(v) ? v.map((x: unknown) => (typeof x === "number" ? x : NaN)) : undefined
+
+/** Every list in an object, as numbers; other values are left out. */
+function numberLists(o: JsonObject): Record<string, number[] | undefined> {
+  const out: Record<string, number[] | undefined> = {}
+  for (const [key, value] of Object.entries(o)) {
+    const list = numbers(value)
+    if (list) out[key] = list
+  }
+  return out
+}
+
+/** The first non-empty string. */
+const firstText = (...values: unknown[]) => values.find((v): v is string => typeof v === "string" && v !== "")
 
 const numberList = (s: string) =>
   s

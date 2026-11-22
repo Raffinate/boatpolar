@@ -109,6 +109,41 @@ TWA\\TWS 6 10
     expect(c.bsp[0]).toBeCloseTo(4 / Math.cos((42 * Math.PI) / 180), 2)
   })
 
+  it("reads ORC VPP data", () => {
+    const vpp = { speeds: [8], angles: [52, 90], "52": [6], "90": [7], beat_angle: [42], beat_vmg: [4], run_angle: [150], run_vmg: [5] }
+    const r = parsed(JSON.stringify({ boat: { type: "TEST 30" }, vpp }))
+    expect(r.polar.name).toBe("TEST 30")
+    expect(r.polar.curves[0].twa).toEqual([42, 52, 90, 150])
+    expect(r.polar.curves[0].bsp.slice(1, 3)).toEqual([6, 7])
+  })
+
+  it("reads polar JSON as curves or a grid", () => {
+    const curves = [{ tws: 6, twa: [52, 90], bsp: [5, 6] }]
+    expect(parsed(JSON.stringify({ name: "C", curves })).polar.curves).toEqual(curves)
+    expect(parsed(JSON.stringify({ tws: [6, 10], twa: [52, 90], bsp: [[5, 6], [6, 7]] })).polar.curves).toEqual([
+      { tws: 6, twa: [52, 90], bsp: [5, 6] },
+      { tws: 10, twa: [52, 90], bsp: [6, 7] },
+    ])
+  })
+
+  it("rejects malformed JSON polars with a message instead of throwing", () => {
+    const error = (json: unknown) => {
+      const r = parsePolar(JSON.stringify(json))
+      return r.ok ? null : r.error
+    }
+    expect(error({ Allowances: { WindSpeeds: [6, 8] } })).toMatch(/WindAngles/)
+    expect(error({ vpp: { angles: [52], speeds: "6 8" } })).toMatch(/angles and speeds/)
+    expect(error({ curves: [null, { tws: 6, bsp: [5, 6] }] })).toMatch(/no wind speed/)
+    expect(error({ tws: ["6", "8"], twa: [52, 90], bsp: [[5, 6], [6, 7]] })).toMatch(/no wind speed/)
+  })
+
+  it("only takes text for a JSON polar's name", () => {
+    const curves = [{ tws: 6, twa: [52, 90], bsp: [5, 6] }]
+    expect(parsed(JSON.stringify({ name: { x: 1 }, curves })).polar.name).toBe("Custom polar")
+    const cert = { Class: 40, YachtName: "Blue", Allowances: { WindSpeeds: [6], WindAngles: [52, 90], R52: [600], R90: [500] } }
+    expect(parsed(JSON.stringify(cert)).polar.name).toBe("Blue")
+  })
+
   it("explains what is wrong", () => {
     expect(parsePolar("")).toEqual({ ok: false, error: "The polar is empty." })
     expect(parsePolar("hello\nworld").ok).toBe(false)
