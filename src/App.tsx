@@ -4,6 +4,7 @@ import { PolarDiagram, type ViewMode } from "./components/PolarDiagram.tsx"
 import { PolarSource } from "./components/PolarSource.tsx"
 import { RangeField } from "./components/RangeField.tsx"
 import { Readout } from "./components/Readout.tsx"
+import { ThemeToggle } from "./components/ThemeToggle.tsx"
 import { library } from "./data/library.ts"
 import { preparePolar, type Polar } from "./lib/polar.ts"
 import { solve } from "./lib/solve.ts"
@@ -106,11 +107,14 @@ export function App() {
 
   return (
     <div class="mx-auto max-w-6xl px-4 py-6 sm:py-10">
-      <header class="mb-6">
-        <h1 class="text-2xl font-semibold tracking-tight">Boat Polar Solver</h1>
-        <p class="mt-1 text-sm text-muted-foreground">
-          The heading that gets you to your destination fastest, from your boat's polar and the true wind.
-        </p>
+      <header class="mb-6 flex items-start justify-between gap-4">
+        <div>
+          <h1 class="text-2xl font-semibold tracking-tight">Boat Polar Solver</h1>
+          <p class="mt-1 text-sm text-muted-foreground">
+            The heading that gets you to your destination fastest, from your boat's polar and the true wind.
+          </p>
+        </div>
+        <ThemeToggle />
       </header>
 
       <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">

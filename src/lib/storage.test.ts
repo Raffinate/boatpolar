@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 import type { Polar } from "./polar.ts"
 import { addCustomPolar, parseCustomPolars, parsePolarSetting, parseSettings } from "./storage.ts"
+import { resolveTheme } from "./theme.ts"
 
 const polarOf = (name: string, speed: number): Polar => ({
   id: `custom:${name}`,
@@ -71,5 +72,15 @@ describe("parsePolarSetting", () => {
     expect(parsePolarSetting({ custom: { name: "X", curves: [{ tws: 10, twa: [45], bsp: [5] }] } })).toBeNull()
     expect(parsePolarSetting({ custom: { name: "X" } })).toBeNull()
     expect(parsePolarSetting(42)).toBeNull()
+  })
+})
+
+describe("resolveTheme", () => {
+  it("uses the shared choice, or the OS when there is none", () => {
+    expect(resolveTheme("light", true)).toBe("light")
+    expect(resolveTheme("dark", false)).toBe("dark")
+    expect(resolveTheme(null, true)).toBe("dark")
+    expect(resolveTheme(null, false)).toBe("light")
+    expect(resolveTheme("sepia", true)).toBe("dark")
   })
 })
