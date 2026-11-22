@@ -109,6 +109,40 @@ export function App() {
     <div class="mx-auto max-w-6xl px-4 py-6 sm:py-10">
       <header class="mb-6 flex items-start justify-between gap-4">
         <div>
+          <nav aria-label="Breadcrumb" class="mb-1">
+            <ol class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+              <li>
+                <a
+                  href="https://raffinate.github.io/"
+                  class="inline-flex items-center gap-1.5 rounded-sm outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/40"
+                  data-ph-capture-attribute-action="home"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    class="size-3.5"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8" />
+                    <path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                  </svg>
+                  Home
+                </a>
+              </li>
+              <li aria-hidden="true">
+                <svg viewBox="0 0 24 24" class="size-3.5 opacity-60" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="m9 18 6-6-6-6" />
+                </svg>
+              </li>
+              <li aria-current="page" class="text-foreground">
+                Boat Polar Solver
+              </li>
+            </ol>
+          </nav>
           <h1 class="text-2xl font-semibold tracking-tight">Boat Polar Solver</h1>
           <p class="mt-1 text-sm text-muted-foreground">
             The heading that gets you to your destination fastest, from your boat's polar and the true wind.
